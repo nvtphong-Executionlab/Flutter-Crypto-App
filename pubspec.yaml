@@ -45,6 +45,8 @@ dependencies:
   intl: ^0.18.1
   animate_do: ^3.0.2
   auto_animated: ^3.1.0
+  hooks_riverpod: ^2.3.6
+  flutter_hooks: ^0.18.6
 
 dev_dependencies:
   flutter_test:

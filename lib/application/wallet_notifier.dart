@@ -21,18 +21,47 @@ class WalletNotifier extends AsyncNotifier<WalletModel> {
 
   @override
   FutureOr<WalletModel> build() async {
+    print('here');
     final balance = await getBalance();
     final address = await getAddress();
+    print('phongdz' + address);
     return WalletModel(address: address, balance: balance);
   }
 
   Future getBalance() async {
-    final response = await _dio.get('api/balance');
-    return response.data['balance'];
+    try {
+      final response = await _dio.get('http://localhost:3001/balance');
+
+      return response.data['balance'];
+    } catch (err) {
+      print(err);
+      return 0;
+    }
   }
 
   Future getAddress() async {
-    final response = await _dio.get('api/balance');
+    final response = await _dio.get('http://localhost:3001/address');
     return response.data['address'];
   }
+
+  Future mineBlock() async {
+    await _dio.post('http://localhost:3001/mineBlock');
+    reload();
+  }
+
+  Future reload() async {
+    final newBalance = await getBalance();
+    print(newBalance);
+    state = AsyncData(state.asData?.value.copyWith(balance: newBalance) ?? WalletModel(balance: newBalance));
+  }
+
+  Future send({required String receiver, required double amount}) async {
+    await _dio.post('http://localhost:3001/sendTransaction', data: {
+      'amount': amount,
+      'address': receiver,
+    });
+    reload();
+  }
 }
+
+final walletProvider = AsyncNotifierProvider<WalletNotifier, WalletModel>(WalletNotifier.new);

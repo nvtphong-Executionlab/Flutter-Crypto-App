@@ -2,21 +2,26 @@ import 'dart:convert';
 
 import 'package:animate_do/animate_do.dart';
 import 'package:auto_animated/auto_animated.dart';
+import 'package:crypto_wallet_app/application/wallet_notifier.dart';
+import 'package:crypto_wallet_app/screen/history_page.dart';
+import 'package:crypto_wallet_app/screen/send_page.dart';
 import 'package:crypto_wallet_app/widget/asset_card.dart';
 import 'package:crypto_wallet_app/widget/bottom_navigation_bar.dart';
 import 'package:crypto_wallet_app/widget/portfolio_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class HomePage extends StatefulWidget {
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({Key? key}) : super(key: key);
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends ConsumerState<HomePage> {
   List _currency = [];
+  bool _showSending = false;
 
   Future<void> readJson() async {
     final String response = await rootBundle.loadString('assets/json/currency.json');
@@ -42,6 +47,11 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
+    final wallet = ref.watch(walletProvider).maybeWhen(
+          orElse: () => const WalletModel(),
+          data: (data) => data,
+        );
+
     return Scaffold(
         backgroundColor: Colors.black,
         body: SingleChildScrollView(
@@ -61,10 +71,32 @@ class _HomePageState extends State<HomePage> {
               FadeInDownBig(
                   child: Center(
                       child: Text(
-                '\$3,293.45',
+                '${wallet.balance} PTC',
                 style: TextStyle(
                     color: Colors.yellowAccent[700], fontSize: 45, fontWeight: FontWeight.bold, fontFamily: ''),
               ))),
+              const SizedBox(
+                height: 10,
+              ),
+              FadeInDownBig(
+                  child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: size.width * 0.5,
+                    child: Text(
+                      wallet.address,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: Colors.grey[300]),
+                    ),
+                  ),
+                  IconButton(
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: wallet.address));
+                      },
+                      icon: const Icon(Icons.copy))
+                ],
+              )),
               const SizedBox(
                 height: 25,
               ),
@@ -72,9 +104,11 @@ class _HomePageState extends State<HomePage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   FadeInLeft(
-                      child: _sendReceive(context,
-                          title: 'Send',
-                          icon: Icon(Icons.arrow_upward_rounded, size: size.width * 0.1, color: Colors.grey[400]))),
+                      child: _sendReceive(context, title: 'Send', onTap: () {
+                    setState(() {
+                      _showSending = !_showSending;
+                    });
+                  }, icon: Icon(Icons.arrow_upward_rounded, size: size.width * 0.1, color: Colors.grey[400]))),
                   const SizedBox(
                     width: 20,
                   ),
@@ -88,6 +122,7 @@ class _HomePageState extends State<HomePage> {
                   FadeInUp(
                       child: _sendReceive(context,
                           title: 'Mine block',
+                          onTap: ref.read(walletProvider.notifier).mineBlock,
                           icon: Icon(Icons.engineering_rounded, size: size.width * 0.1, color: Colors.grey[400]))),
                   const SizedBox(
                     width: 20,
@@ -106,6 +141,8 @@ class _HomePageState extends State<HomePage> {
                 thickness: 0.5,
                 color: Colors.grey,
               ),
+              if (_showSending) const SendPage(),
+              const HistoryPage(),
               const SizedBox(
                 height: 16,
               ),
@@ -132,16 +169,16 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ],
               ),
-              _viewAll(title: 'Your Assets'),
-              LiveList(
-                showItemInterval: const Duration(milliseconds: 300),
-                showItemDuration: const Duration(seconds: 1),
-                padding: const EdgeInsets.only(top: 0, bottom: 16),
-                physics: const BouncingScrollPhysics(),
-                shrinkWrap: true,
-                itemCount: _currency.length,
-                itemBuilder: _buildAnimatedItem,
-              ),
+              // _viewAll(title: 'Your Assets'),
+              // LiveList(
+              //   showItemInterval: const Duration(milliseconds: 300),
+              //   showItemDuration: const Duration(seconds: 1),
+              //   padding: const EdgeInsets.only(top: 0, bottom: 16),
+              //   physics: const BouncingScrollPhysics(),
+              //   shrinkWrap: true,
+              //   itemCount: _currency.length,
+              //   itemBuilder: _buildAnimatedItem,
+              // ),
             ],
           ),
         ),
@@ -218,23 +255,27 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  _sendReceive(BuildContext context, {required Icon icon, required String title}) {
-    return Column(
-      children: [
-        Container(
-          width: MediaQuery.of(context).size.width * 0.17,
-          height: MediaQuery.of(context).size.width * 0.17,
-          decoration: BoxDecoration(color: Colors.grey[900], borderRadius: const BorderRadius.all(Radius.circular(10))),
-          child: icon,
-        ),
-        const SizedBox(
-          height: 8,
-        ),
-        Text(
-          title,
-          style: TextStyle(color: Colors.grey[300], fontSize: 20),
-        ),
-      ],
+  _sendReceive(BuildContext context, {required Icon icon, required String title, Function()? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            width: MediaQuery.of(context).size.width * 0.17,
+            height: MediaQuery.of(context).size.width * 0.17,
+            decoration:
+                BoxDecoration(color: Colors.grey[900], borderRadius: const BorderRadius.all(Radius.circular(10))),
+            child: icon,
+          ),
+          const SizedBox(
+            height: 8,
+          ),
+          Text(
+            title,
+            style: TextStyle(color: Colors.grey[300], fontSize: 20),
+          ),
+        ],
+      ),
     );
   }
 }
