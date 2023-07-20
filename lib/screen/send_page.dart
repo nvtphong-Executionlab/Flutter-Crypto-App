@@ -41,6 +41,9 @@ class SendPage extends HookConsumerWidget {
               ref
                   .read(walletProvider.notifier)
                   .send(receiver: addressController.text, amount: double.parse(amountController.text));
+
+              amountController.clear();
+              addressController.clear();
             },
             child: const Text('Send'))
       ],

@@ -1,5 +1,6 @@
 import 'package:crypto_wallet_app/application/history_notifier.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class HistoryPage extends ConsumerWidget {
@@ -10,6 +11,7 @@ class HistoryPage extends ConsumerWidget {
     final historyList = ref.watch(historyNotifierProvider).asData?.value ?? [];
     final size = MediaQuery.sizeOf(context);
     return ListView.builder(
+      shrinkWrap: true,
       reverse: true,
       itemBuilder: (context, index) {
         final history = historyList[index];
@@ -29,7 +31,11 @@ class HistoryPage extends ConsumerWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                trailing: IconButton(onPressed: () {}, icon: const Icon(Icons.copy)),
+                trailing: IconButton(
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: history.from));
+                    },
+                    icon: const Icon(Icons.copy)),
               ),
               ListTile(
                 leadingAndTrailingTextStyle: TextStyle(color: Colors.grey[300], fontSize: 16),
@@ -40,7 +46,11 @@ class HistoryPage extends ConsumerWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                trailing: IconButton(onPressed: () {}, icon: const Icon(Icons.copy)),
+                trailing: IconButton(
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: history.to));
+                    },
+                    icon: const Icon(Icons.copy)),
               ),
             ],
           ),
@@ -48,7 +58,6 @@ class HistoryPage extends ConsumerWidget {
         );
       },
       itemCount: historyList.length,
-      shrinkWrap: true,
     );
   }
 }
